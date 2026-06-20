@@ -104,24 +104,34 @@ export class MainScene extends Phaser.Scene {
         this.particles = this.add.particles();
         this.particles.setDepth(50);
 
-        // Start game immediately (no countdown)
-        this.isGameOver = false;
+        // Wait for camera to be ready before starting timer and spawning
+        this.isGameOver = true;
         this.isStarting = false;
 
-        document.getElementById('timeDisplay').innerText = this.timeLeft;
+        const startGameLogic = () => {
+            this.isGameOver = false;
+            this.timeLeft = 30;
+            document.getElementById('timeDisplay').innerText = this.timeLeft;
 
-        // Start timer
-        this.timerInterval = setInterval(() => {
-            this.updateTimer();
-        }, 1000);
+            if (this.timerInterval) clearInterval(this.timerInterval);
+            this.timerInterval = setInterval(() => {
+                this.updateTimer();
+            }, 1000);
 
-        // Bắt đầu tung trái cây sau một khoảng trễ nhỏ để tránh lag lúc mới khởi tạo WebGL
-        this.time.delayedCall(500, () => {
-            if (!this.isGameOver) this.spawnFruit();
-        });
+            // Bắt đầu tung trái cây sau một khoảng trễ nhỏ
+            this.time.delayedCall(500, () => {
+                if (!this.isGameOver) this.spawnFruit();
+            });
 
-        // Notify main.js that game has started
-        window.dispatchEvent(new CustomEvent('sakego-gamestart'));
+            // Notify main.js that game has started
+            window.dispatchEvent(new CustomEvent('sakego-gamestart'));
+        };
+
+        if (window.__cameraReady) {
+            startGameLogic();
+        } else {
+            window.addEventListener('camera-ready', startGameLogic, { once: true });
+        }
     }
 
     update(time, delta) {

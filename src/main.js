@@ -100,24 +100,31 @@ startBtn.addEventListener('click', async () => {
     // Immediately hide start screen
     startScreen.classList.add('hidden');
     
-    // Show a small loading text just in case it's not done yet
+    // Show a small loading text
     countdownOverlay.classList.remove('hidden');
     countdownOverlay.classList.add('flex');
     countdownNumber.innerText = '';
     countdownStatus.innerText = 'Đang bật camera...';
 
+    // 1. Initialize Phaser game SYNCHRONOUSLY to unlock WebAudio Context on iOS/Mobile!
+    if (!game) {
+        document.getElementById('game-container').style.opacity = '0'; // Hide temporarily
+        game = new Phaser.Game(gameConfig);
+    }
+
     try {
-        // Wait for background setup to finish
+        // Wait for background AI setup to finish
         await globalSetupPromise;
 
-        // Hide overlay
+        // Signal MainScene that camera is ready to start gameplay
+        window.__cameraReady = true;
+        window.dispatchEvent(new CustomEvent('camera-ready'));
+
+        // Hide overlay and reveal game
         countdownOverlay.classList.add('hidden');
         countdownOverlay.classList.remove('flex');
-
-        // Initialize Phaser game
-        game = new Phaser.Game(gameConfig);
-
-        // Show UI
+        
+        document.getElementById('game-container').style.opacity = '1';
         uiLayer.classList.remove('hidden');
         uiLayer.classList.add('flex');
 
