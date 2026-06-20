@@ -91,7 +91,7 @@ export class MainScene extends Phaser.Scene {
 
         // Music
         this.bgm = this.sound.add('bgm', { loop: true, volume: 0.5 });
-        this.bgm.play();
+        // Music will be played when game logic starts
 
         // Generate fallback emoji textures for missing images
         this.generateDemoTextures();
@@ -112,6 +112,11 @@ export class MainScene extends Phaser.Scene {
             this.isGameOver = false;
             this.timeLeft = 30;
             document.getElementById('timeDisplay').innerText = this.timeLeft;
+
+            // Start playing BGM now that camera is ready
+            if (this.bgm && !this.bgm.isPlaying) {
+                this.bgm.play();
+            }
 
             if (this.timerInterval) clearInterval(this.timerInterval);
             this.timerInterval = setInterval(() => {
