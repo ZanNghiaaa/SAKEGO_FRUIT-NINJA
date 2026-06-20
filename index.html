@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="bg-sakego-dark text-white overflow-hidden select-none font-sans m-0 p-0">
+  <div id="app" class="relative w-screen h-screen">
+    <!-- Game Container for Phaser -->
+    <div id="game-container" class="absolute inset-0 z-0"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none hidden flex-col justify-between p-4">
+      <!-- Top Bar -->
+      <div class="flex justify-between items-start">
+        <div class="flex flex-col gap-2">
+          <div class="bg-black/50 px-4 py-2 rounded-lg border-2 border-sakego-green shadow-[0_0_10px_#4ade80]">
+            <span class="text-xl font-bold text-sakego-green">SCORE</span>
+            <span id="scoreDisplay" class="text-3xl font-black block">0</span>
+          </div>
+          <div id="comboContainer"
+            class="hidden bg-black/50 px-4 py-2 rounded-lg border-2 border-yellow-400 shadow-[0_0_10px_#facc15] transition-transform duration-200">
+            <span class="text-xl font-bold text-yellow-400">COMBO</span>
+            <span id="comboDisplay" class="text-3xl font-black block text-yellow-400">x0</span>
+          </div>
+        </div>
+
+        <div class="bg-black/50 px-6 py-2 rounded-lg border-2 border-white text-center">
+          <span class="text-xl font-bold text-white">TIME</span>
+          <span id="timeDisplay" class="text-4xl font-black block">30</span>
+        </div>
+
+        <!-- Right Column: Camera + Live Leaderboard -->
+        <div class="flex flex-col gap-2 items-end">
+          <!-- Camera Feed -->
+          <div
+            class="relative w-48 h-36 bg-black rounded-lg overflow-hidden border-4 border-sakego-green shadow-[0_0_15px_#4ade80]">
+            <video id="webcamVideo" class="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]" autoplay
+              playsinline></video>
+            <canvas id="faceCanvas" class="absolute inset-0 w-full h-full transform scale-x-[-1]"></canvas>
+            <div class="absolute bottom-1 right-1 text-xs font-bold text-white bg-sakego-green px-1 rounded">SAKEGO AI
+            </div>
+          </div>
+
+          <!-- Live Leaderboard Panel -->
+          <div class="w-48 bg-black/60 rounded-lg border border-sakego-green/40 overflow-hidden"
+            style="backdrop-filter: blur(8px);">
+            <div class="bg-sakego-green/20 px-3 py-1.5 flex items-center gap-1.5 border-b border-sakego-green/30">
+              <span class="text-sm">🏆</span>
+              <span class="text-xs font-bold text-sakego-green uppercase tracking-wider">Bảng Xếp Hạng</span>
+            </div>
+            <div id="liveLeaderboard" class="flex flex-col max-h-40 overflow-y-auto"
+              style="scrollbar-width: thin; scrollbar-color: #4ade80 transparent;">
+              <div class="text-xs text-gray-500 text-center py-2">Đang tải...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Messages (Combo/Legendary/Sakego info) -->
+      <div id="centerMessage"
+        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center hidden">
+        <h1 id="messageText"
+          class="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+          LEGENDARY!
+        </h1>
+      </div>
+    </div>
+
+    <!-- Start Screen (Gamer / Arcade UI Redesign) -->
+    <div id="startScreen"
+      class="absolute inset-0 z-50 flex flex-col md:flex-row items-center justify-between overflow-hidden bg-[radial-gradient(ellipse_at_center,_#064e3b_0%,_#021a13_50%,_#000000_100%)]">
+
+      <!-- Cyberpunk Grid Background -->
+      <div class="absolute inset-0 z-0 pointer-events-none opacity-20"
+        style="background-image: linear-gradient(#4ade80 1px, transparent 1px), linear-gradient(90deg, #4ade80 1px, transparent 1px); background-size: 50px 50px; transform: perspective(500px) rotateX(60deg) scale(2); transform-origin: center 100%;">
+      </div>
+
+      <!-- Falling Fruits Background Container -->
+      <div id="bg-fruits" class="absolute inset-0 z-0 pointer-events-none overflow-hidden"></div>
+
+      <!-- Subtle background glow -->
+      <div class="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-green-500/10 blur-[120px] pointer-events-none"></div>
+
+      <!-- Left Column: Typography & Content -->
+      <div class="w-full md:w-1/2 h-full flex flex-col justify-center px-8 sm:px-16 md:px-24 z-10 pt-10 md:pt-0">
+        
+
+
+        <h1
+          class="gsap-item text-5xl sm:text-6xl md:text-7xl lg:text-[6rem] font-black tracking-tighter leading-[1] text-white mb-6 drop-shadow-[0_0_20px_rgba(74,222,128,0.5)]" style="text-shadow: 2px 2px 0px #16a34a, 4px 4px 0px #064e3b;">
+          FRUIT NINJA <br /><span class="text-[#4ade80]">SAKEGO</span>
+        </h1>
+
+        <p class="gsap-item text-lg sm:text-xl text-gray-300 font-medium mb-10 max-w-lg leading-relaxed">
+          Trở thành Samurai nông sản thực thụ. Vung <strong class="text-[#facc15]">bàn tay thật</strong> để chém trái
+          cây siêu mượt thông qua Camera AI.
+        </p>
+
+        <div class="gsap-item flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          <!-- Gamer Start Button -->
+          <button id="startBtn"
+            class="group relative px-10 py-4 sm:px-12 sm:py-5 rounded-xl text-xl sm:text-2xl font-black uppercase tracking-wider text-black bg-[#4ade80] border-b-[6px] border-[#16a34a] hover:border-b-[2px] hover:translate-y-[4px] active:border-b-0 active:translate-y-[6px] transition-all duration-100 shadow-[0_0_30px_rgba(74,222,128,0.4)] hover:shadow-[0_0_50px_rgba(74,222,128,0.6)] cursor-pointer">
+            <span class="relative z-10 flex items-center justify-center gap-3">
+              <i class="fa-solid fa-play text-2xl"></i>
+              BẮT ĐẦU NGAY
+            </span>
+          </button>
+          
+          <!-- Badges -->
+          <div class="flex flex-col gap-2 text-sm text-gray-400 font-bold uppercase tracking-wider">
+            <span class="flex items-center gap-2"><i class="fa-solid fa-camera text-[#facc15]"></i> Camera Required</span>
+            <span class="flex items-center gap-2"><i class="fa-solid fa-stopwatch text-[#4ade80]"></i> 30s Survival</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Mascot Visual -->
+      <div class="w-full md:w-1/2 h-[45vh] md:h-full relative flex justify-center items-center overflow-hidden z-0">
+        <!-- GSAP Visual Container -->
+        <div
+          class="gsap-visual relative w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] lg:w-[500px] lg:h-[500px] flex justify-center items-center">
+
+          <!-- Core Aura -->
+          <div class="absolute inset-0 bg-green-400/30 blur-[80px] rounded-full"
+            style="animation: pulseAura 4s ease-in-out infinite;"></div>
+
+          <!-- Mascot Image -->
+          <img src="/assets/linhvat01.png" alt="Sakego Mascot"
+            class="w-full h-full object-contain relative z-10 drop-shadow-[0_20px_40px_rgba(0,0,0,0.25)] floating-mascot-anim">
+        </div>
+
+        <!-- Version tag -->
+        <div class="absolute bottom-6 right-8 text-xs font-mono text-gray-400 font-medium">v1.0.0 · SAKEGO Team</div>
+
+          <!-- GSAP Scripts -->
+          <script>
+            document.addEventListener("DOMContentLoaded", () => {
+              // Entrance animations
+              gsap.from(".gsap-item", {
+                y: 40,
+                opacity: 0,
+                duration: 1,
+                stagger: 0.15,
+                ease: "power3.out",
+                delay: 0.2
+              });
+              gsap.from(".gsap-visual", {
+                x: 100,
+                opacity: 0,
+                duration: 1.2,
+                ease: "power3.out",
+                delay: 0.4
+              });
+
+              // Falling Background Fruits
+              const bgFruitsContainer = document.getElementById('bg-fruits');
+              if (bgFruitsContainer) {
+                const fruits = [
+                  { type: 'image', src: '/assets/fruits/sake.png' },
+                  { type: 'image', src: '/assets/fruits/sake.png' },
+                  { type: 'image', src: '/assets/fruits/sake.png' },
+                  { type: 'image', src: '/assets/fruits/sake.png' },
+                  { type: 'image', src: '/assets/fruits/sake.png' },
+                  { type: 'image', src: '/assets/fruits/sake.png' }, // Nhấn mạnh Sake (60% tỉ lệ)
+                  { type: 'emoji', char: '🍎' },
+                  { type: 'emoji', char: '🍊' },
+                  { type: 'emoji', char: '🥭' },
+                  { type: 'emoji', char: '🍉' }
+                ];
+                
+                for (let i = 0; i < 15; i++) {
+                  let fruitData = fruits[Math.floor(Math.random() * fruits.length)];
+                  let el;
+                  let size = 50 + Math.random() * 80;
+
+                  if (fruitData.type === 'image') {
+                    el = document.createElement('img');
+                    el.src = fruitData.src;
+                    el.style.width = size + 'px';
+                    el.style.height = size + 'px';
+                  } else {
+                    el = document.createElement('div');
+                    el.innerText = fruitData.char;
+                    el.style.fontSize = (size * 0.8) + 'px';
+                    el.style.lineHeight = '1';
+                    el.style.display = 'flex';
+                    el.style.justifyContent = 'center';
+                    el.style.alignItems = 'center';
+                  }
+                  
+                  el.className = 'absolute drop-shadow-[0_0_15px_rgba(74,222,128,0.2)] opacity-40 select-none';
+                  el.style.left = (Math.random() * 100) + 'vw';
+                  el.style.top = (-200 - Math.random() * 300) + 'px';
+                  
+                  bgFruitsContainer.appendChild(el);
+                  
+                  gsap.to(el, {
+                    y: window.innerHeight + 800,
+                    x: "+=" + (-150 + Math.random() * 300),
+                    rotation: -360 + Math.random() * 720,
+                    duration: 8 + Math.random() * 12,
+                    ease: "none",
+                    repeat: -1,
+                    delay: -(Math.random() * 15) // Bắt đầu ở các vị trí ngẫu nhiên trên màn hình
+                  });
+                }
+              }
+            });
+          </script>
+        </div>
+      </div>
+
+      <!-- Countdown Overlay -->
+        <div id="countdownOverlay"
+          class="absolute inset-0 z-[60] hidden flex-col items-center justify-center overflow-hidden"
+          style="background: radial-gradient(ellipse at center, #064e3b 0%, #021a13 50%, #000a06 100%);">
+          <div class="glow-orb glow-orb-1"></div>
+          <div class="glow-orb glow-orb-2"></div>
+          <div id="countdownNumber"
+            class="text-[12rem] md:text-[16rem] font-black drop-shadow-[0_0_60px_#4ade80] transition-all duration-300"
+            style="color: #4ade80; text-shadow: 0 0 40px #4ade80, 0 0 80px rgba(74,222,128,0.4); animation: countdownPulse 1s ease-in-out infinite;">
+          </div>
+          <p id="countdownStatus" class="mt-4 text-xl font-bold" style="color: rgba(255,255,255,0.5);"></p>
+        </div>
+
+        <style>
+          /* ===== Countdown Overlay Animations ===== */
+          @keyframes countdownPulse {
+            0% {
+              transform: scale(0.5);
+              opacity: 0;
+            }
+
+            50% {
+              transform: scale(1.15);
+              opacity: 1;
+            }
+
+            100% {
+              transform: scale(1);
+              opacity: 0.9;
+            }
+          }
+
+          @keyframes countdownGo {
+            0% {
+              transform: scale(0.5);
+              opacity: 0;
+            }
+
+            50% {
+              transform: scale(1.5);
+              opacity: 1;
+            }
+
+            100% {
+              transform: scale(2);
+              opacity: 0;
+            }
+          }
+
+          /* Countdown Glow orbs */
+          .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(80px);
+            z-index: 0;
+          }
+
+          .glow-orb-1 {
+            width: 400px;
+            height: 400px;
+            top: -100px;
+            left: -100px;
+            background: rgba(74, 222, 128, 0.12);
+          }
+
+          .glow-orb-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            right: -50px;
+            background: rgba(34, 211, 238, 0.08);
+          }
+
+          /* ===== Start Screen Animations ===== */
+          /* Additional Pro Design CSS */
+          @keyframes floating-mascot-anim {
+
+            0%,
+            100% {
+              transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+              transform: translateY(-20px) rotate(3deg);
+            }
+          }
+
+          .floating-mascot-anim {
+            animation: floating-mascot-anim 5s ease-in-out infinite;
+          }
+
+          @keyframes pulseAura {
+
+            0%,
+            100% {
+              opacity: 0.3;
+              transform: scale(1);
+            }
+
+            50% {
+              opacity: 0.6;
+              transform: scale(1.1);
+            }
+          }
+        </style>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen"
+          class="absolute inset-0 z-[100] bg-black/90 hidden flex-col items-center justify-center p-4 pointer-events-auto"
+          style="backdrop-filter: blur(4px);">
+          <div class="flex gap-6 items-start max-w-4xl w-full justify-center flex-wrap">
+            <!-- Left: Poster Area -->
+            <div id="posterArea"
+              class="bg-gradient-to-b from-sakego-dark to-black p-6 rounded-2xl border-4 border-sakego-green w-full max-w-sm flex flex-col items-center shadow-[0_0_50px_#4ade80]">
+              <h1 class="text-4xl font-black text-sakego-green mb-2">SAKEGO</h1>
+              <h2 class="text-xl text-gray-300 mb-6">CHỨNG NHẬN THÀNH TÍCH</h2>
+
+              <div class="relative w-40 h-40 rounded-full overflow-hidden border-4 border-white mb-4">
+                <canvas id="posterPhoto" class="w-full h-full object-cover"></canvas>
+              </div>
+
+              <div class="w-full bg-white/10 rounded-lg p-4 mb-4">
+                <div class="flex justify-between mb-2">
+                  <span class="text-gray-300">Điểm số:</span>
+                  <span id="goScore" class="font-bold text-2xl text-sakego-green">0</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                  <span class="text-gray-300">Combo Cao Nhất:</span>
+                  <span id="goCombo" class="font-bold text-xl text-yellow-400">0</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                  <span class="text-gray-300">Tổng Trái Cây:</span>
+                  <span id="goTotal" class="font-bold text-xl text-white">0</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-300">Xếp Hạng:</span>
+                  <span id="goRank" class="font-bold text-xl text-orange-400">Mầm Non Xanh</span>
+                </div>
+              </div>
+
+              <div class="text-sm text-gray-400" id="goDate"></div>
+
+              <div class="flex gap-3 mt-4 w-full">
+                <button id="restartBtn"
+                  class="w-full px-4 py-3 bg-gray-700 rounded-xl font-bold hover:bg-gray-600 transition-colors text-sm">🔄
+                  Chơi Lại</button>
+              </div>
+            </div>
+
+            <!-- Right: Leaderboard -->
+            <div class="w-full max-w-sm">
+              <div
+                class="bg-gray-900/90 border-2 border-sakego-green/50 rounded-2xl p-5 shadow-[0_0_30px_rgba(74,222,128,0.15)]"
+                style="backdrop-filter: blur(12px);">
+                <div class="flex items-center gap-2 mb-4">
+                  <span class="text-2xl">🏆</span>
+                  <h2 class="text-2xl font-bold text-sakego-green">TOP SAKE NINJA</h2>
+                </div>
+
+                <!-- Save Score Section -->
+                <div id="saveScoreSection" class="mb-4 p-3 rounded-xl bg-white/5 border border-sakego-green/20">
+                  <label class="block text-xs font-bold text-sakego-green mb-2 uppercase tracking-wider">Lưu điểm của
+                    bạn</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="playerNameInput" placeholder="Nhập tên..." maxlength="15"
+                      class="flex-1 px-3 py-2 rounded-lg text-white text-sm font-bold outline-none transition-all duration-200"
+                      style="background: rgba(255,255,255,0.08); border: 1px solid rgba(74,222,128,0.3);"
+                      onfocus="this.style.borderColor='#4ade80'; this.style.boxShadow='0 0 15px rgba(74,222,128,0.15)';"
+                      onblur="this.style.borderColor='rgba(74,222,128,0.3)'; this.style.boxShadow='none';">
+                    <button id="submitScoreBtn"
+                      class="px-4 py-2 bg-sakego-green text-black font-bold rounded-lg hover:bg-green-400 transition-colors text-sm whitespace-nowrap">💾
+                      Lưu</button>
+                  </div>
+                  <div id="saveStatus" class="mt-2 text-center text-xs font-bold hidden"></div>
+                </div>
+
+                <div id="goLeaderboardList" class="flex flex-col gap-1 max-h-72 overflow-y-auto pr-1"
+                  style="scrollbar-width: thin; scrollbar-color: #4ade80 transparent;">
+                  <div class="text-gray-500 text-center py-4">Đang tải...</div>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

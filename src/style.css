@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@theme {
+  --color-sakego-green: #4ade80;
+  --color-sakego-dark: #064e3b;
+}
+
+/* Additional custom animations */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.shake {
+  animation: shake 0.2s ease-in-out;
+}
