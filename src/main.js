@@ -7,7 +7,8 @@ import { saveScore, getTopScores } from './firebase/leaderboard';
 
 import { FilesetResolver } from "@mediapipe/tasks-vision";
 
-let game = null;
+// Initialize Phaser game immediately on load so it can attach its Audio Unlock listeners to the document
+let game = new Phaser.Game(gameConfig);
 let camera = null;
 let handTracker = new HandTracker(null, null, null);
 
@@ -105,12 +106,6 @@ startBtn.addEventListener('click', async () => {
     countdownOverlay.classList.add('flex');
     countdownNumber.innerText = '';
     countdownStatus.innerText = 'Đang bật camera...';
-
-    // 1. Initialize Phaser game SYNCHRONOUSLY to unlock WebAudio Context on iOS/Mobile!
-    if (!game) {
-        document.getElementById('game-container').style.opacity = '0'; // Hide temporarily
-        game = new Phaser.Game(gameConfig);
-    }
 
     try {
         // Wait for background AI setup to finish
